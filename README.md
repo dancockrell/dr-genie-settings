@@ -21,7 +21,7 @@ typo means the alert you thought you had never fires and nothing tells you.
 
 ## What makes a sound, and what does not
 
-Twelve of forty-six entries carry a sound. That ratio is the point.
+Twelve of fifty-two entries carry a sound. That ratio is the point.
 
 A client that pings constantly is a client people mute, and a muted client has
 no alerts at all. So sound is reserved for things you need to know when you
@@ -54,13 +54,49 @@ value line in the file.
 A character in that state learns nothing. It is stated once and never
 repeated.
 
-**Arrivals.** These look like noise and are not. Knowing who is in the room is
-most of what a MUD is, and the person who just walked in might be a GM. They
-are highlighted and given a quiet sound so they stop scrolling past unread —
-not gagged.
+**A creature entering the room.**
 
-Departures are matched by direction rather than by a single verb, because the
-movement verb is per-player flavour:
+```
+You notice as a black lynx pads into the area.
+```
+
+Something that can act on you while you are reading another window. That is
+what a sound is for, and it is the clearest example in the file of the line
+between a sound and a colour.
+
+Matched on "into the area" rather than on the verb, because the verb is
+per-creature flavour in the same way the player movement verb is: "pads" finds
+lynxes and nothing else.
+
+## The one that got reversed
+
+**Arrivals had a sound and no longer do.**
+
+The argument for it was good: knowing who is in the room is most of what a MUD
+is, and the person who walked in might be a GM. Ninety seconds of standing in
+Firulf Vista settled it anyway. Nine arrivals, nine departures, one movement
+every five seconds, and each of them reprinting the whole room block
+underneath — roughly sixty lines a minute describing a room that had not
+changed.
+
+A crossroads in the Crossing is where players actually stand. A chime every
+five seconds there gets the client muted, and a muted client has no alerts at
+all, including the idle warning that costs a session.
+
+So the argument was right about the colour and wrong about the sound. A GM in
+the room is something you find by looking at a window you are already looking
+at. Arrivals are still highlighted, still not gagged, and now silent, and
+`validate.mjs` asserts the silence so that the good argument does not quietly
+win again.
+
+The room block is dimmed rather than gagged for the same reason: it is how you
+know where you are when you have just walked somewhere, and it is sixty lines
+a minute when you have not.
+
+## Departures
+
+Matched by direction rather than by a single verb, because the movement verb is
+per-player flavour:
 
 ```
 Heartbreaker Zarif just arrived.

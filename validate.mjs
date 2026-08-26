@@ -83,7 +83,21 @@ console.log('\n-- the alerts that cost a session are present --')
   ok('idle warning makes a sound', hasSound('HAS FLAGGED YOU AS IDLE'))
   ok('resting-not-learning is covered', has('light state of rest'))
   ok('arrivals are covered', has('just arrived'))
-  ok('arrivals are audible', hasSound('just arrived'))
+
+  // Reversed after ninety seconds of standing in Firulf Vista: nine arrivals
+  // and nine departures, a chime every five seconds. The assertion used to be
+  // "arrivals are audible" and it was written from reasoning rather than from
+  // watching, in a repo whose whole claim is that its contents were observed.
+  //
+  // It is asserted in the negative now, and it stays asserted, because the
+  // argument for making arrivals audible is a good one - the person walking in
+  // might be a GM - and somebody reading this file will make it again.
+  ok('arrivals are silent', !hasSound('just arrived'))
+
+  // What replaced it. A creature entering is the case a sound is actually for:
+  // it can act on you while you are looking at another window.
+  ok('a creature entering is covered', has('into the area'))
+  ok('a creature entering is audible', hasSound('into the area'))
 }
 
 console.log(failed ? `\n${failed} failed` : '\nall passed')
