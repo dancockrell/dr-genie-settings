@@ -124,11 +124,12 @@ console.log('\n-- the config stays quiet enough to keep --')
   // client has no alerts at all. This is a real constraint, not tidiness.
   const loud = entries.filter((e) => e.sound).length
 
-  // An empty config has no ratio, and saying it is too loud would be a lie in
-  // the reader's favour's opposite direction: it reports a fault that is not
-  // the fault. `0 / 0` is NaN, `NaN < 0.34` is false, and the line printed
-  // "FAIL ... 0 of 0" - a true failure with a false reason, which sends the
-  // next person looking for sounds to remove from a file that has none.
+  // An empty config has no ratio to take, and calling it too loud is a
+  // failure with the wrong reason attached - which is its own kind of lie,
+  // and a costly one. `0 / 0` is NaN, `NaN < 0.34` is false, so the line
+  // printed "FAIL ... 0 of 0" and sent the next reader hunting for sounds to
+  // remove from a file that has none. The config was empty. That is what
+  // needed saying.
   //
   // Found by break-check.mjs's empty-config case, which expected this check to
   // stay quiet and got a failure instead. That is the negative test earning
