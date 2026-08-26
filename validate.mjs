@@ -140,5 +140,69 @@ console.log('\n-- the alerts that cost a session are present --')
   ok('a creature entering is audible', hasSound('into the area'))
 }
 
+console.log('\n-- lines we actually saw are actually matched --')
+{
+  /**
+   * The only check here that tests the config against the game.
+   *
+   * Everything above tests the file: well-formed, not too loud, the important
+   * fragments present. All of that can pass on a config that fires on nothing,
+   * because "the pattern is in the file" and "the pattern matches the line" are
+   * different claims and the first one is much easier to satisfy.
+   *
+   * These are real lines, copied off the wire in two play sessions. Each is
+   * asserted to be matched by at least one entry, using the same matching
+   * rules Genie uses: `string` is a substring, `line` is a substring too (Genie
+   * colours the whole line rather than the fragment), `beginswith` anchors at
+   * the start, and `regexp` is a regex.
+   *
+   * When this fails it means somebody rewrote a pattern into something that no
+   * longer catches the thing it was written for, which is exactly the failure
+   * you cannot see by reading the config.
+   */
+  const OBSERVED = [
+    ['GENIE HAS FLAGGED YOU AS IDLE, PLEASE RESPOND!', 'idle warning'],
+    ['You are relaxed and your mind has entered a light state of rest.', 'resting'],
+    ['You awaken from your reverie and begin to take in the world around you (You will now begin to gain new experience again)', 'awakening'],
+    ['Heartbreaker Zarif just arrived.', 'player arrives'],
+    ['Togballer Bulvine swaggers east.', 'player leaves, odd verb'],
+    ['Commoner Brommoner hobbles east.', 'player leaves, odder verb'],
+    ['Travelling Doctor Marconias goes west.', 'player leaves, plain verb'],
+    ['Commoner Brommoner came down a stone stairway.', 'player leaves, vertically'],
+    ['Also here: Silvyandril who is blurred by hazy afterimages.', 'visible effect'],
+    ['A shaggy mutt bounds into the area.', 'creature arrives'],
+    ['You notice as a black lynx pads into the area.', 'creature arrives, noticed'],
+    ['A town guard walks in, glancing about with a false look of boredom on his face.', 'creature arrives, other phrasing'],
+    ['The black lynx pads off.', 'creature leaves'],
+    ['You feel fully attuned to the mana streams again.', 'mana'],
+    ['Obvious paths: east, south, west.', 'room block'],
+    ['     Owes 1146 copper Kronars to the Principality of Zoluren', 'the debt'],
+  ]
+
+  const matches = (e, line) => {
+    if (e.type === 'regexp') {
+      try {
+        return new RegExp(e.pattern).test(line)
+      } catch {
+        return false
+      }
+    }
+    if (e.type === 'beginswith') return line.trimStart().startsWith(e.pattern)
+    return line.includes(e.pattern)
+  }
+
+  // The denominator, and it is the fragile one: if the parse above broke and
+  // `entries` came back empty, every line below would report unmatched rather
+  // than the suite quietly agreeing that nothing needed matching.
+  ok('there are entries to match against', entries.length > 0, `${entries.length} entries`)
+
+  const missed = OBSERVED.filter(([line]) => !entries.some((e) => matches(e, line)))
+  ok(
+    'every observed line is caught',
+    missed.length === 0,
+    missed.length ? missed.map(([, why]) => why).join(', ') : `${OBSERVED.length} lines`
+  )
+}
+
 console.log(failed ? `\n${failed} failed` : '\nall passed')
 process.exit(failed ? 1 : 0)
