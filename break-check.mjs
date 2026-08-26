@@ -113,6 +113,8 @@ const CASES = [
       'every DR mindstate is covered',
       'there are entries to match against',
       'every observed line is caught',
+      'every line Lich documents is caught',
+      'every wound severity is covered',
     ],
     // Not a failure: with nothing to take a ratio of, "is it too loud" has no
     // answer. It used to report FAIL with "0 of 0" - a real failure carrying a
@@ -122,6 +124,36 @@ const CASES = [
     // and fails on coverage rather than skipping - emptying the config does not
     // make the instrument unavailable, only the thing being measured.
     expectSkip: ['under a third of entries make a sound'],
+  },
+  {
+    name: 'wound-bands',
+    why: 'the four wound severity bands',
+    how: ['removeEntries', ['-- *(']],
+    expectFail: ['every wound severity is covered', 'every line Lich documents is caught'],
+  },
+  {
+    name: 'bare-severity',
+    why: 'a bare severity word put back, the regression this section replaced',
+    // The old entry was `{line} {#FF0000} {severe} {wounds}`, which reddened
+    // "severe scarring" and "severely swollen" while leaving "devastating" and
+    // "useless" uncoloured. Asserted so reaching for the short version fails.
+    how: ['append', '#highlight {line} {#FF0000} {severe} {wounds}'],
+    expectFail: ['no unanchored severity words'],
+  },
+  {
+    name: 'lodged-and-parasites',
+    why: 'the lodged-item and parasite entries',
+    how: ['removeEntries', ['lodged .* into your', 'blood mite']],
+    expectFail: ['every line Lich documents is caught'],
+  },
+  {
+    name: 'no-lich-healing',
+    why: 'the wound ladder is unavailable, not wrong',
+    how: null,
+    env: { DR_LICH_HEALINGDATA: 'C:/nowhere/does/this/exist.rb' },
+    expectFail: [],
+    expectSkip: ['the DR wound severity ladder'],
+    expectSummaryNot: 'all passed',
   },
   {
     name: 'guard-itself',

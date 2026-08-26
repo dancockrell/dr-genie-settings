@@ -256,6 +256,43 @@ console.log('\n-- lines we actually saw are actually matched --')
     missed.length === 0,
     missed.length ? missed.map(([, why]) => why).join(', ') : `${OBSERVED.length} lines`
   )
+
+  /**
+   * Lines nobody here has seen on the wire, kept apart on purpose.
+   *
+   * This repository's claim is that its contents were observed rather than
+   * imagined, and these were not: they come from worked examples written into
+   * Lich's own source beside the regexes that parse them. That is good
+   * evidence - better than memory, because Lich has to be right about it to
+   * function - but it is not the same evidence, and quietly mixing the two
+   * would erode the one claim the README makes.
+   *
+   * So they are asserted just as hard and counted separately, and the label
+   * says where they came from. If somebody later sees one of these in play,
+   * move it up into OBSERVED with the date.
+   */
+  const DOCUMENTED = [
+    [
+      'Fresh External:  light scratches -- negligible',
+      'PERCEIVE HEALTH severity, the worked example in PERCEIVE_HEALTH_SEVERITY_REGEX',
+    ],
+    [
+      'Fresh Internal:  a deeply bruised head -- very devastating',
+      'the dangerous end of the same ladder',
+    ],
+    [
+      'a wood-hilted broadsword lodged deeply into your chest',
+      'lodged item, from LODGED_BODY_PART_REGEX',
+    ],
+    ['a large black blood mite on your left leg', 'parasite, from PARASITES_REGEX'],
+  ]
+
+  const missedDoc = DOCUMENTED.filter(([line]) => !entries.some((e) => matches(e, line)))
+  ok(
+    'every line Lich documents is caught',
+    missedDoc.length === 0,
+    missedDoc.length ? missedDoc.map(([, why]) => why).join(', ') : `${DOCUMENTED.length} lines`
+  )
 }
 
 console.log('\n-- the mindstates are DragonRealms\' own, and all of them --')
@@ -320,6 +357,62 @@ console.log('\n-- the mindstates are DragonRealms\' own, and all of them --')
       'no GemStone mindstates',
       wrongGame.length === 0,
       wrongGame.map((e) => e.pattern).join(', ') || `${foreign.length} words checked for`
+    )
+  }
+}
+
+console.log('\n-- the wound severities are all thirteen --')
+{
+  /**
+   * The same treatment as the mindstates, for the category where being wrong
+   * costs more than a wasted training session.
+   *
+   * This section used to carry one bare word out of the thirteen: `{severe}`,
+   * unanchored, so it reddened "severe scarring" and "severely swollen" while
+   * a character with a "devastating" or "useless" limb got no colour at all.
+   * The scale ran the wrong way at exactly the end where it matters.
+   *
+   * DRCH::WOUND_SEVERITY is the authority, and the constant beside it names
+   * the line the words appear in with a worked example:
+   *
+   *   "Fresh External:  light scratches -- negligible"
+   *
+   * Hence the "--" anchor in the config, and hence testing each severity in
+   * that shape rather than bare - a check that fed the words in unanchored
+   * would pass on patterns that fire on prose, which is the bug being fixed.
+   */
+  const HEAL =
+    process.env.DR_LICH_HEALINGDATA ||
+    'C:/Ruby4Lich5/Lich5/lib/dragonrealms/commons/common-healing-data.rb'
+  const wounds = entries.filter((e) => e.cls === 'wounds' && e.type === 'regexp')
+
+  if (!existsSync(HEAL)) {
+    skip('the DR wound severity ladder', `Lich is not at ${HEAL}`)
+  } else {
+    const src = readFileSync(HEAL, 'utf8')
+    const block = src.slice(src.indexOf('WOUND_SEVERITY = {'), src.indexOf('PARASITES_REGEX'))
+    const ladder = [...block.matchAll(/'([^']+)' *=>/g)].map((m) => m[1])
+
+    // The fragile denominator again. A changed table name or a moved constant
+    // collapses this to nothing, and the coverage check below would then be
+    // true of a config containing no wound entries at all.
+    ok('the wound ladder parsed', ladder.length === 13, `${ladder.length} severities from Lich`)
+
+    const uncovered = ladder.filter(
+      (s) => !wounds.some((e) => new RegExp(e.pattern).test(`Fresh External:  a wound --  ${s}`))
+    )
+    ok('every wound severity is covered', uncovered.length === 0, uncovered.join(', ') || `${ladder.length} levels`)
+
+    // The specific regression this replaced: a bare severity word with nothing
+    // in front of it, which fires on any sentence using it. Asserted so that
+    // reaching for the obvious short version fails loudly next time.
+    const bare = entries.filter(
+      (e) => e.cls === 'wounds' && e.type !== 'regexp' && ladder.includes(e.pattern)
+    )
+    ok(
+      'no unanchored severity words',
+      bare.length === 0,
+      bare.map((e) => e.pattern).join(', ') || `${ladder.length} words checked for`
     )
   }
 }
