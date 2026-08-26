@@ -177,6 +177,29 @@ console.log('\n-- lines we actually saw are actually matched --')
     ['You feel fully attuned to the mana streams again.', 'mana'],
     ['Obvious paths: east, south, west.', 'room block'],
     ['     Owes 1146 copper Kronars to the Principality of Zoluren', 'the debt'],
+
+    // Off the wire on 27 Aug 2026, playing Phemius (Circle 1 Kaldar Bard).
+    // A Bard trains Performance in a town street with an instrument, so these
+    // are the lines a whole guild's training actually produces, and none of
+    // them look like combat.
+    ['A town guard ambles east.', 'creature leaves by direction, no name prefix'],
+    [
+      'The armor on your head makes playing your cocobolo txistu more difficult.',
+      'worn armour is silently degrading the thing you are training',
+    ],
+    [
+      'You begin some off-key scales on your cocobolo txistu with only the slightest hint of difficulty.',
+      'song starts',
+    ],
+    [
+      "You're already playing a song!  You'll need to stop that one first.",
+      'song is still running',
+    ],
+
+    // The EXP window's own format. The mindstate is the word between the
+    // percentage and the fraction, and it is the thing that decides whether
+    // any of this training is doing anything.
+    ['     Performance:      5 07% perusing       (2/34)', 'exp line, real mindstate word'],
   ]
 
   const matches = (e, line) => {
