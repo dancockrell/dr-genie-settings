@@ -52,6 +52,46 @@ console.log('-- every highlight line is well formed --')
   ok('none are malformed', malformed.length === 0, malformed.slice(0, 3).join('; '))
 }
 
+console.log('\n-- every regexp actually compiles --')
+{
+  // A malformed regexp is the worst version of the failure this file exists
+  // for. Genie skips the line without a word, so the alert never fires - and
+  // unlike a typo in a literal pattern you cannot spot it by reading, because
+  // a broken regexp and a working one look equally plausible.
+  //
+  // Genie is .NET and this is JavaScript, which is not the same engine. It is
+  // close enough for what is used here: alternation, non-capturing groups,
+  // anchors, escapes. A pattern that fails to compile in either is certainly
+  // wrong. This catches the mistakes people actually make. It does not certify
+  // .NET compatibility, and a pattern reaching for something .NET-only would
+  // still need trying in the client.
+  const rx = entries.filter((e) => e.type === 'regexp')
+  const broken = []
+  for (const e of rx) {
+    try {
+      new RegExp(e.pattern)
+    } catch (err) {
+      broken.push(`${e.pattern} - ${err.message}`)
+    }
+  }
+  ok('there are regexps to check', rx.length >= 1, `${rx.length} found`)
+  ok('all of them compile', broken.length === 0, broken.slice(0, 2).join('; '))
+}
+
+console.log('\n-- departures match the direction, not the verb --')
+{
+  // Enumerating movement verbs cannot finish: runs, goes, swaggers, hobbles,
+  // and one more every evening. Directions are a closed set of ten. This is
+  // the third attempt at departures and the first two both failed by trying to
+  // name the verb, so it is worth a test that fails if anyone tries again.
+  const byVerb = entries.filter((e) =>
+    /^(runs|goes|walks|strolls|hobbles|swaggers) (east|west|north|south)$/.test(e.pattern)
+  )
+  ok('no verb-plus-direction literals', byVerb.length === 0, byVerb.map((e) => e.pattern).join(', '))
+  const dir = entries.find((e) => e.type === 'regexp' && e.pattern.includes('east|west'))
+  ok('the direction match is present', !!dir, dir ? dir.pattern.slice(0, 42) : 'missing')
+}
+
 console.log('\n-- every sound named actually exists --')
 {
   const have = existsSync('Sounds') ? new Set(readdirSync('Sounds')) : new Set()
