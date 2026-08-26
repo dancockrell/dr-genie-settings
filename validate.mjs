@@ -17,9 +17,26 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs'
 const TYPES = new Set(['line', 'string', 'beginswith', 'regexp'])
 
 let failed = 0
+
+/**
+ * Things that were not checked, which is a third answer and not a pass.
+ *
+ * A check has to be able to say three things: yes, no, and "I could not
+ * determine this". Folding the third into either of the other two is where the
+ * lie enters, and folding it into "yes" is the version that gets somebody
+ * hurt. The summary line at the bottom is what people actually read, so an
+ * unchecked item has to survive all the way down to it.
+ */
+const unchecked = []
+
 const ok = (name, cond, detail = '') => {
   if (!cond) failed++
   console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(46)}${detail}`)
+}
+
+const skip = (name, why) => {
+  unchecked.push(name)
+  console.log(`SKIP ${name.padEnd(46)}${why}`)
 }
 
 const text = readFileSync('Config/highlights.cfg', 'utf8')
@@ -227,5 +244,71 @@ console.log('\n-- lines we actually saw are actually matched --')
   )
 }
 
-console.log(failed ? `\n${failed} failed` : '\nall passed')
+console.log('\n-- the mindstates are DragonRealms\' own, and all of them --')
+{
+  /**
+   * Checked against Lich rather than against memory.
+   *
+   * Seven entries in this file were once the GemStone IV ladder - clear as a
+   * bell, muddled, becoming numbed, saturated - carried into a DragonRealms
+   * config where they matched nothing. They survived a play session that
+   * correctly suspected them and correctly refused to delete on the evidence
+   * it had: a Circle 1 character never approaches mind lock, so no test
+   * available that night could have produced those lines whether they existed
+   * or not. "I never saw it" is not an absence you can establish.
+   *
+   * What settled it was not more play. Lich ships both ladders and the
+   * directory names them: DR_LEARNING_RATES lives under lib/dragonrealms and
+   * has 35 states; MINDMAP lives in lib/constants.rb and has the GemStone
+   * eight. The suspect words appear only in the second.
+   *
+   * So this reads the DR list off disk and checks both directions - nothing
+   * here that DragonRealms does not print, nothing DragonRealms prints that is
+   * missing here. The second direction is the one that found something: the
+   * first pass at the ladder covered 27 of 35, and the eight it missed were
+   * invisible by eye because the list is long and half of it is ordinary
+   * English.
+   */
+  const LICH = 'C:/Ruby4Lich5/Lich5/lib/dragonrealms/drinfomon/drvariables.rb'
+  const mindstates = entries.filter((e) => e.cls === 'learning' && e.type === 'regexp')
+
+  if (!existsSync(LICH)) {
+    // The third answer, printed rather than folded into one of the other two.
+    // A missing instrument is not a pass, and silently treating it as one is
+    // how a check that cannot fail gets into a suite in the first place.
+    skip('the DR mindstate ladder', `Lich is not at ${LICH}`)
+  } else {
+    const src = readFileSync(LICH, 'utf8')
+    const block = src.slice(src.indexOf('DR_LEARNING_RATES'), src.indexOf('].freeze'))
+    const ladder = [...block.matchAll(/'([^']+)'/g)].map((m) => m[1])
+
+    // The fragile denominator: if the parse above breaks, this collapses to a
+    // handful and the two checks below become vacuously true.
+    ok('the DR ladder parsed', ladder.length >= 30, `${ladder.length} states from Lich`)
+
+    // Every state DragonRealms prints is caught by some band here.
+    const uncovered = ladder.filter(
+      (state) => !mindstates.some((e) => new RegExp(e.pattern).test(`07% ${state} `))
+    )
+    ok('every DR mindstate is covered', uncovered.length === 0, uncovered.join(', ') || `${ladder.length} states`)
+
+    // And nothing here is a word from the other game's ladder.
+    const foreign = ['muddled', 'numbed', 'saturated', 'must rest', 'clear as a bell', 'fresh and clear']
+    const wrongGame = entries.filter((e) => foreign.some((w) => e.pattern.includes(w)))
+    ok(
+      'no GemStone mindstates',
+      wrongGame.length === 0,
+      wrongGame.map((e) => e.pattern).join(', ') || `${foreign.length} words checked for`
+    )
+  }
+}
+
+// The last line is the one people read, so it carries all three answers. A run
+// that skipped something must never end on the words "all passed".
+const summary = failed
+  ? `${failed} failed`
+  : unchecked.length
+    ? `no failures, but ${unchecked.length} not checked: ${unchecked.join(', ')}`
+    : 'all passed'
+console.log(`\n${summary}`)
 process.exit(failed ? 1 : 0)
