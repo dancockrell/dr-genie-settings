@@ -123,8 +123,21 @@ console.log('\n-- the config stays quiet enough to keep --')
   // A client that pings constantly is a client people mute, and a muted
   // client has no alerts at all. This is a real constraint, not tidiness.
   const loud = entries.filter((e) => e.sound).length
-  const share = loud / entries.length
-  ok('under a third of entries make a sound', share < 0.34, `${loud} of ${entries.length}`)
+
+  // An empty config has no ratio, and saying it is too loud would be a lie in
+  // the reader's favour's opposite direction: it reports a fault that is not
+  // the fault. `0 / 0` is NaN, `NaN < 0.34` is false, and the line printed
+  // "FAIL ... 0 of 0" - a true failure with a false reason, which sends the
+  // next person looking for sounds to remove from a file that has none.
+  //
+  // Found by break-check.mjs's empty-config case, which expected this check to
+  // stay quiet and got a failure instead. That is the negative test earning
+  // its keep on the suite rather than on the config.
+  if (entries.length === 0) {
+    skip('under a third of entries make a sound', 'no entries to take a ratio of')
+  } else {
+    ok('under a third of entries make a sound', loud / entries.length < 0.34, `${loud} of ${entries.length}`)
+  }
 
   // The mana attunement line fires several times a minute in normal play.
   // Anything that frequent must never carry a sound.
@@ -269,7 +282,14 @@ console.log('\n-- the mindstates are DragonRealms\' own, and all of them --')
    * invisible by eye because the list is long and half of it is ordinary
    * English.
    */
-  const LICH = 'C:/Ruby4Lich5/Lich5/lib/dragonrealms/drinfomon/drvariables.rb'
+  // Overridable so the SKIP branch below is reachable from a test. That branch
+  // is the one that was quietly wrong - it printed NOT CHECKED and the run
+  // still ended on "all passed" - and a branch nobody can execute on purpose is
+  // a branch nobody can prove they fixed. break-check.mjs points this at a path
+  // that does not exist and asserts the summary refuses to say "all passed".
+  const LICH =
+    process.env.DR_LICH_DRVARIABLES ||
+    'C:/Ruby4Lich5/Lich5/lib/dragonrealms/drinfomon/drvariables.rb'
   const mindstates = entries.filter((e) => e.cls === 'learning' && e.type === 'regexp')
 
   if (!existsSync(LICH)) {
