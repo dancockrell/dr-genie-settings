@@ -271,20 +271,49 @@ console.log('\n-- lines we actually saw are actually matched --')
    * says where they came from. If somebody later sees one of these in play,
    * move it up into OBSERVED with the date.
    */
+  /**
+   * Each carries the file it came from, not just the constant.
+   *
+   * Because of what Dan pointed out, which turns out to be the load-bearing
+   * fact in this whole thread: GemStone IV and DragonRealms are different
+   * games from the same company, and Lich was built by the community for one
+   * and ported to the other. So one toolchain spans both, and a word that
+   * belongs to the other game can sit in it looking entirely native. That is
+   * how "muddled" got into a DragonRealms config in the first place.
+   *
+   * Which means DOCUMENTED evidence carries a known, correlated risk: it comes
+   * from the very codebase where the two games are mixed. Good evidence, and
+   * evidence with a specific way of being wrong.
+   *
+   * The directory is the tell. `lib/dragonrealms/` is this game. `lib/` alone,
+   * `constants.rb`, `global_defs.rb` are shared or the other game's. So the
+   * source path is recorded and asserted, rather than trusted to whoever adds
+   * the next line remembering the rule.
+   */
+  const LICH_LIB = 'C:/Ruby4Lich5/Lich5/lib/'
+  const DR_ONLY = 'dragonrealms/'
+
   const DOCUMENTED = [
     [
       'Fresh External:  light scratches -- negligible',
       'PERCEIVE HEALTH severity, the worked example in PERCEIVE_HEALTH_SEVERITY_REGEX',
+      'dragonrealms/commons/common-healing-data.rb',
     ],
     [
       'Fresh Internal:  a deeply bruised head -- very devastating',
       'the dangerous end of the same ladder',
+      'dragonrealms/commons/common-healing-data.rb',
     ],
     [
       'a wood-hilted broadsword lodged deeply into your chest',
       'lodged item, from LODGED_BODY_PART_REGEX',
+      'dragonrealms/commons/common-healing-data.rb',
     ],
-    ['a large black blood mite on your left leg', 'parasite, from PARASITES_REGEX'],
+    [
+      'a large black blood mite on your left leg',
+      'parasite, from PARASITES_REGEX',
+      'dragonrealms/commons/common-healing-data.rb',
+    ],
   ]
 
   const missedDoc = DOCUMENTED.filter(([line]) => !entries.some((e) => matches(e, line)))
@@ -293,6 +322,28 @@ console.log('\n-- lines we actually saw are actually matched --')
     missedDoc.length === 0,
     missedDoc.length ? missedDoc.map(([, why]) => why).join(', ') : `${DOCUMENTED.length} lines`
   )
+
+  // Every documented line came out of DragonRealms' own directory, not the
+  // shared tree. This is the check that would have caught "muddled" at the
+  // moment somebody added it, rather than an evening later.
+  const wrongTree = DOCUMENTED.filter(([, , src]) => !src || !src.startsWith(DR_ONLY))
+  ok(
+    'all of it came from the DR tree',
+    wrongTree.length === 0,
+    wrongTree.length ? wrongTree.map(([, why]) => why).join(', ') : `${DR_ONLY} only`
+  )
+
+  // And the cited files exist, so a path that was renamed or imagined is a
+  // failure rather than a citation nobody can follow. Unavailable if Lich is
+  // not installed, which is a third answer and not a pass.
+  if (!existsSync(LICH_LIB)) {
+    skip('the cited sources exist', `Lich is not at ${LICH_LIB}`)
+  } else {
+    const absent = [...new Set(DOCUMENTED.map(([, , src]) => src))].filter(
+      (src) => !existsSync(LICH_LIB + src)
+    )
+    ok('the cited sources exist', absent.length === 0, absent.join(', ') || 'all resolve')
+  }
 }
 
 console.log('\n-- the mindstates are DragonRealms\' own, and all of them --')
