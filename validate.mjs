@@ -29,14 +29,39 @@ let failed = 0
  */
 const unchecked = []
 
+/**
+ * Pad the name out to the detail column, and never run the two together.
+ *
+ * `padEnd(46)` alone returns the string unchanged when it is already 46 long,
+ * so a long name butted straight into its detail: "over 0 dayssee one in
+ * play". Two spaces minimum, which also keeps break-check.mjs able to split
+ * name from detail on a run of whitespace.
+ */
+const pad = (s, n = 46) => (s.length >= n ? `${s}  ` : s.padEnd(n))
+
 const ok = (name, cond, detail = '') => {
   if (!cond) failed++
-  console.log(`${cond ? 'OK  ' : 'FAIL'} ${name.padEnd(46)}${detail}`)
+  console.log(`${cond ? 'OK  ' : 'FAIL'} ${pad(name)}${detail}`)
 }
 
 const skip = (name, why) => {
   unchecked.push(name)
-  console.log(`SKIP ${name.padEnd(46)}${why}`)
+  console.log(`SKIP ${pad(name)}${why}`)
+}
+
+/**
+ * A fourth answer: checked, passing, and still worth saying out loud.
+ *
+ * Distinct from a skip. A skip means the check could not run; a note means it
+ * ran and found something that is not a build failure but will rot if nobody
+ * looks - evidence ageing without ever being confirmed in play, so far. Making
+ * it a failure would break the build over something nobody can fix without
+ * logging in, and leaving it silent is how it stays true for a year.
+ */
+const notes = []
+const note = (what, why) => {
+  notes.push(what)
+  console.log(`NOTE ${pad(what)}${why}`)
 }
 
 const text = readFileSync('Config/highlights.cfg', 'utf8')
@@ -293,26 +318,49 @@ console.log('\n-- lines we actually saw are actually matched --')
   const LICH_LIB = 'C:/Ruby4Lich5/Lich5/lib/'
   const DR_ONLY = 'dragonrealms/'
 
+  /**
+   * The fourth field is the date the line was added, and it exists because
+   * this evidence can be stale in the direction nobody looks.
+   *
+   * Everything here is what *Lich believes* DragonRealms emits. The failure
+   * mode we spent an evening on was vocabulary from the wrong game; the
+   * mirror-image failure is a variant the game removed years ago and Lich
+   * still carries, which no amount of cross-checking against Lich can catch,
+   * because Lich is the thing being quoted.
+   *
+   * The only instrument that closes that loop is somebody seeing the line in
+   * play and promoting it to OBSERVED with a date. So the ones that never get
+   * promoted are the interesting ones - and an entry that has sat here
+   * unconfirmed for a year should say so out loud rather than waiting for a
+   * reader to notice a date. Hence the ageing note below.
+   *
+   * Promoting is the good outcome: move the line up to OBSERVED, keep the
+   * date, and this list gets shorter.
+   */
   const DOCUMENTED = [
     [
       'Fresh External:  light scratches -- negligible',
       'PERCEIVE HEALTH severity, the worked example in PERCEIVE_HEALTH_SEVERITY_REGEX',
       'dragonrealms/commons/common-healing-data.rb',
+      '2026-08-27',
     ],
     [
       'Fresh Internal:  a deeply bruised head -- very devastating',
       'the dangerous end of the same ladder',
       'dragonrealms/commons/common-healing-data.rb',
+      '2026-08-27',
     ],
     [
       'a wood-hilted broadsword lodged deeply into your chest',
       'lodged item, from LODGED_BODY_PART_REGEX',
       'dragonrealms/commons/common-healing-data.rb',
+      '2026-08-27',
     ],
     [
       'a large black blood mite on your left leg',
       'parasite, from PARASITES_REGEX',
       'dragonrealms/commons/common-healing-data.rb',
+      '2026-08-27',
     ],
   ]
 
@@ -322,6 +370,49 @@ console.log('\n-- lines we actually saw are actually matched --')
     missedDoc.length === 0,
     missedDoc.length ? missedDoc.map(([, why]) => why).join(', ') : `${DOCUMENTED.length} lines`
   )
+
+  // Every entry carries the date it was added, so a line nobody has ever seen
+  // in play becomes visible by ageing rather than by somebody thinking to
+  // check. Not a failure - nobody can fix this without playing - but it must
+  // not be silent either, so it reaches the summary like a skip does.
+  {
+    // Overridable for the same reason the Lich paths are: on the day this was
+    // written every entry is nought days old, so the branch that actually
+    // matters could not be run on purpose. An unreachable branch is where the
+    // last three defects in this file were living.
+    const STALE_DAYS = Number(process.env.DR_STALE_DAYS ?? 90)
+    const day = 24 * 60 * 60 * 1000
+
+    // Both sides at UTC midnight, or the answer is wrong by a day and can be
+    // NEGATIVE. `Date.parse('2026-08-27')` is midnight UTC by spec, and
+    // `Date.now()` is an instant; on a machine east of UTC, an entry added
+    // today came out as -1 days, `-1 >= 0` was false, and the staleness branch
+    // could not fire at all. It printed "-1 days" on screen the whole time and
+    // the run still said "all passed", which is this repository's own lesson
+    // landing on the person writing it.
+    const now = new Date()
+    const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+    const ages = DOCUMENTED.map(([, , , added]) =>
+      added ? Math.round((todayUTC - Date.parse(added)) / day) : null
+    )
+    ok('every documented line is dated', ages.every((a) => a !== null && !Number.isNaN(a)), `${ages.length} dated`)
+
+    // A future date is a typo, not evidence, and it would hide the entry from
+    // the ageing check for as long as it stayed wrong.
+    const ahead = ages.filter((a) => a !== null && a < 0).length
+    ok('no documented line is dated in the future', ahead === 0, ahead ? `${ahead} ahead of today` : 'none')
+
+    const stale = ages.filter((a) => a !== null && a >= STALE_DAYS).length
+    const oldest = ages.length ? Math.max(...ages.filter((a) => a !== null)) : 0
+    if (stale) {
+      note(
+        `${stale} documented line(s) unconfirmed in play for over ${STALE_DAYS} days`,
+        'see one in play, then promote it to OBSERVED with the date'
+      )
+    } else {
+      console.log(`     ${pad('oldest unconfirmed documented line')}${oldest} days`)
+    }
+  }
 
   // Every documented line came out of DragonRealms' own directory, not the
   // shared tree. This is the check that would have caught "muddled" at the
@@ -470,10 +561,15 @@ console.log('\n-- the wound severities are all thirteen --')
 
 // The last line is the one people read, so it carries all three answers. A run
 // that skipped something must never end on the words "all passed".
+const tail = [
+  unchecked.length ? `${unchecked.length} not checked: ${unchecked.join(', ')}` : null,
+  notes.length ? `${notes.length} to look at: ${notes.join('; ')}` : null,
+].filter(Boolean)
+
 const summary = failed
-  ? `${failed} failed`
-  : unchecked.length
-    ? `no failures, but ${unchecked.length} not checked: ${unchecked.join(', ')}`
+  ? `${failed} failed${tail.length ? `, and ${tail.join(', and ')}` : ''}`
+  : tail.length
+    ? `no failures, but ${tail.join(', and ')}`
     : 'all passed'
 console.log(`\n${summary}`)
 process.exit(failed ? 1 : 0)

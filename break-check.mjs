@@ -156,6 +156,17 @@ const CASES = [
     expectSummaryNot: 'all passed',
   },
   {
+    name: 'stale-documented',
+    why: 'documented evidence has aged without ever being seen in play',
+    // Not a failure and not a skip: the check ran and found something real
+    // that nobody can fix without logging in. It must still reach the summary,
+    // because the whole point is that it stops being invisible.
+    how: null,
+    env: { DR_STALE_DAYS: '0' },
+    expectFail: [],
+    expectSummaryNot: 'all passed',
+  },
+  {
     name: 'guard-itself',
     why: 'nothing, on purpose - this fragment matches no line in the config',
     // The guard is the reason this file is trustworthy, so the guard needs a
