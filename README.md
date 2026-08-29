@@ -1,40 +1,36 @@
 # DragonRealms settings for Genie
 
-Highlights and sounds for a new character, written against text observed in
-play rather than imagined.
+Highlights and sounds for a new character. Written against text seen in play.
 
-A fresh Genie install gives you 356 stock aliases, **no highlights, no
-sounds**, and a sound directory that is configured and empty. This fills that
-in.
+A fresh Genie install gives you 356 stock aliases, no highlights, no sounds,
+and a sound directory that is configured and empty. This fills that in.
 
 ## Install
 
 Copy `Config/highlights.cfg` into `C:\Genie4\Config\`, and the contents of
 `Sounds/` into whatever `#config {sounddir}` points at — `C:\Genie4\Sounds` by
-default. Check with `#config sounddir` if you are not sure.
+default. Check with `#config sounddir`.
 
 Then in Genie: `#reload`
 
-Run `node validate.mjs` first if you have edited anything. Genie does not
-complain about a malformed highlight; it skips the line and carries on, so a
-typo means the alert you thought you had never fires and nothing tells you.
+Run `node validate.mjs` after you edit. Genie does not complain about a broken
+highlight. It skips the line. The alert you thought you had never fires.
 
-## What makes a sound, and what does not
+## Sound is scarce on purpose
 
-Twelve of fifty-two entries carry a sound. That ratio is the point.
+Twelve of fifty-two entries carry a sound.
 
-A client that pings constantly is a client people mute, and a muted client has
-no alerts at all. So sound is reserved for things you need to know when you
-are **not looking at the window**. Colour is for finding things once you are.
+A client that pings constantly gets muted. A muted client has no idle warning
+either. Sound is for things you need when you are not looking at the window.
+Colour is for finding things once you are.
 
 The most frequent line in normal play is `You feel fully attuned to the mana
-streams again`, several times a minute. It is coloured and silent, and the
-validator fails the build if that ever changes.
+streams again`, several times a minute. Coloured, silent. The validator fails
+the build if that ever changes.
 
-## The three that matter most
+## Three that matter
 
-**The idle warning.** Observed twice in one evening, both times followed by a
-disconnect:
+**Idle.** Seen twice in one evening, both times followed by a disconnect:
 
 ```
 [23:54] GENIE HAS FLAGGED YOU AS IDLE, PLEASE RESPOND!
@@ -42,17 +38,15 @@ disconnect:
 [23:55] Connection closed.
 ```
 
-Genie quits the game for you if you do not answer. That warning is the only
-notice, and it scrolls past in a window full of arrivals. It is the highest
-value line in the file.
+Genie quits for you if you do not answer. That line scrolls past in a window
+full of arrivals. Highest-value match in the file.
 
-**Resting and not learning.** At login:
+**Resting.** At login:
 
 > You are relaxed and your mind has entered a light state of rest. To wake up
 > and start learning again, type: AWAKEN.
 
-A character in that state learns nothing. It is stated once and never
-repeated.
+A character in that state learns nothing. Said once. Never repeated.
 
 **A creature entering the room.**
 
@@ -60,43 +54,30 @@ repeated.
 You notice as a black lynx pads into the area.
 ```
 
-Something that can act on you while you are reading another window. That is
-what a sound is for, and it is the clearest example in the file of the line
-between a sound and a colour.
+Something that can act on you while you read another window. Matched on
+"into the area", not the verb. The verb is per-creature flavour. "pads" would
+only find lynxes.
 
-Matched on "into the area" rather than on the verb, because the verb is
-per-creature flavour in the same way the player movement verb is: "pads" finds
-lynxes and nothing else.
+## Arrivals used to chime
 
-## The one that got reversed
-
-**Arrivals had a sound and no longer do.**
-
-The argument for it was good: knowing who is in the room is most of what a MUD
-is, and the person who walked in might be a GM. Ninety seconds of standing in
-Firulf Vista settled it anyway. Nine arrivals, nine departures, one movement
-every five seconds, and each of them reprinting the whole room block
-underneath — roughly sixty lines a minute describing a room that had not
+The argument for a sound was fine: knowing who walked in is most of what a MUD
+is, and it might be a GM. Ninety seconds in Firulf Vista killed it. Nine
+arrivals, nine departures, a movement every five seconds, each reprinting the
+whole room block. About sixty lines a minute describing a room that had not
 changed.
 
-A crossroads in the Crossing is where players actually stand. A chime every
-five seconds there gets the client muted, and a muted client has no alerts at
-all, including the idle warning that costs a session.
+A crossroads in the Crossing is where people stand. A chime every five seconds
+there mutes the client, including the idle warning that costs a session.
 
-So the argument was right about the colour and wrong about the sound. A GM in
-the room is something you find by looking at a window you are already looking
-at. Arrivals are still highlighted, still not gagged, and now silent, and
-`validate.mjs` asserts the silence so that the good argument does not quietly
-win again.
+Arrivals stay highlighted, stay ungagged, and are silent. `validate.mjs`
+asserts the silence so the old argument does not sneak back.
 
-The room block is dimmed rather than gagged for the same reason: it is how you
-know where you are when you have just walked somewhere, and it is sixty lines
-a minute when you have not.
+The room block is dimmed rather than gagged for the same reason. You need it
+when you have just walked somewhere. You do not need it shouted.
 
 ## Departures
 
-Matched by direction rather than by a single verb, because the movement verb is
-per-player flavour:
+Match direction, not a single verb. Movement verbs are per-player flavour:
 
 ```
 Heartbreaker Zarif just arrived.
@@ -105,12 +86,11 @@ Togballer Bulvine swaggers east.
 Travelling Doctor Marconias goes west.
 ```
 
-Matching `leaves` would have missed every one of those.
+Matching `leaves` would have missed all of those.
 
 ## Classes
 
-Every entry carries a class, so you can turn a whole group off in one command
-— `#class combat off` and so on.
+Every entry has a class, so a group can go off in one command — `#class combat off`.
 
 `alert` `learning` `people` `speech` `wounds` `rt` `magic` `money` `items`
 
