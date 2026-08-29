@@ -140,7 +140,19 @@ console.log('\n-- every sound named actually exists --')
   const named = [...new Set(entries.map((e) => e.sound).filter(Boolean))]
   const missing = named.filter((s) => !have.has(s))
   ok('sounds are present', missing.length === 0, missing.join(', ') || `${named.length} used`)
-  ok('no sound file is unused', true, `${have.size} in Sounds/, ${named.length} referenced`)
+
+  // This used to be `ok('no sound file is unused', true, ...)` - a check that
+  // always passed regardless of what it found, which is the same silent-lie
+  // shape the rest of this file exists to catch, just committed by the
+  // checker itself. An unused sound is not a build failure (it may be staged
+  // for a highlight nobody has written yet), but it is worth surfacing, so it
+  // is a note, not a fail - the same treatment as an aging DOCUMENTED line.
+  const unused = [...have].filter((f) => !named.includes(f)).sort()
+  if (unused.length) {
+    note(`${unused.length} sound file(s) in Sounds/ not referenced by any highlight`, unused.join(', '))
+  } else {
+    console.log(`     ${pad('no sound file is unused')}${have.size} in Sounds/, ${named.length} referenced`)
+  }
 }
 
 console.log('\n-- the config stays quiet enough to keep --')
