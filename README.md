@@ -18,7 +18,7 @@ highlight. It skips the line. The alert you thought you had never fires.
 
 ## Sound is scarce on purpose
 
-Twelve of fifty-two entries carry a sound.
+Only selected highlights carry a sound. `node validate.mjs` reports the current entry and sound counts directly from `Config/highlights.cfg`; a copied count here would drift as the configuration changes.
 
 A client that pings constantly gets muted. A muted client has no idle warning
 either. Sound is for things you need when you are not looking at the window.
